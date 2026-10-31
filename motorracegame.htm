@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>www.turboracegame.com - 360 KM/H Motosiklet Şampiyonası</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090d16;color:#f8fafc;font-family:'Segoe UI',Roboto,Arial,sans-serif;text-align:center;user-select:none;overflow-x:hidden}
+h1,h2,h3{margin:4px 0;color:#ffcf24}
+
+/* Domain & Üst Gösterge */
+.domain-banner{background:linear-gradient(90deg,#0f172a,#1e3a8a,#0f172a);color:#38bdf8;font-size:12px;letter-spacing:1.5px;padding:4px;font-weight:bold;border-bottom:1px solid #334155}
+.header-bar{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:6px;background:#0f172a;border-bottom:2px solid #1e293b}
+.stat{background:#1e293b;padding:6px 12px;border-radius:8px;font-size:13px;border:1px solid #334155;font-weight:600}
+.stat b{color:#38bdf8}
+.diff-tag{font-size:11px;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;font-weight:bold}
+.diff-kolay{background:#16a34a;color:#fff}
+.diff-orta{background:#ca8a04;color:#fff}
+.diff-zor{background:#ea580c;color:#fff}
+.diff-cokzor{background:#7c3aed;color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Ekran Yönetimi */
+.screen{display:none;max-width:620px;margin:auto;padding:10px}
+.screen.active{display:block}
+
+/* Garaj Sekmeleri */
+.tabs{display:flex;justify-content:center;gap:6px;margin:8px 0}
+.tab-btn{background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px}
+.tab-btn.active{background:#eab308;color:#090d16;border-color:#facc15}
+
+/* Garaj Kartı */
+.garage-card{background:#111827;border:2px solid #1f2937;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);margin-bottom:10px}
+.car-preview-box{background:radial-gradient(circle,#1e293b 0%,#090d16 85%);border-radius:12px;padding:12px;border:1px solid #334155}
+.car-nav{display:flex;justify-content:center;align-items:center;margin:8px 0;gap:3px;flex-wrap:wrap}
+.colors-row{display:flex;justify-content:center;gap:6px;margin:10px 0;flex-wrap:wrap}
+.color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid #fff}
+
+/* İstatistik Barları */
+.spec-bar{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin:5px 0}
+.bar-track{width:48%;height:9px;background:#1e293b;border-radius:5px;overflow:hidden;border:1px solid #475569}
+.bar-fill{height:100%;background:linear-gradient(90deg,#eab308,#22c55e);transition:width .2s}
+
+/* 150 Motor Listesi */
+.motor-list{max-height:220px;overflow-y:auto;border:1px solid #1e293b;border-radius:8px;background:#090d16;padding:6px;text-align:left}
+.motor-item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #1e293b;font-size:12px}
+.motor-item:last-child{border-bottom:0}
+
+/* VIP Üyelik Kartı */
+.vip-card{background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #6366f1;border-radius:10px;padding:10px;margin:8px 0;text-align:left;font-size:12px}
+.vip-badge{background:#facc15;color:#090d16;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:11px}
+
+/* Ana Butonlar */
+.btn-primary{background:linear-gradient(135deg,#eab308,#f59e0b);color:#111;border:0;border-radius:10px;padding:14px;width:100%;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(245,158,11,.4)}
+.btn-primary:active{transform:scale(.98)}
+.btn-secondary{background:#334155;color:#f8fafc;border:0;border-radius:6px;padding:6px 10px;font-weight:bold;cursor:pointer;margin:2px;font-size:11.5px}
+
+/* Yarış Ekranı & Analog Kadran */
+canvas{display:block;width:min(96vw,360px);height:auto;margin:auto;border:3px solid #475569;border-radius:12px;touch-action:none;box-shadow:0 10px 30px rgba(0,0,0,.8)}
+.race-hud-bottom{display:flex;justify-content:space-between;align-items:center;max-width:360px;margin:6px auto 0}
+#gauge-canvas{background:#0b0f19;border:2px solid #334155;border-radius:50%;box-shadow:0 0 15px rgba(56,189,248,.3)}
+.controls{display:flex;justify-content:center;gap:6px;margin:6px auto;max-width:360px}
+.ctrl-btn{background:#1e293b;color:#f8fafc;border:2px solid #475569;border-radius:10px;padding:14px;font-weight:bold;font-size:14px;flex:1;touch-action:none}
+.ctrl-btn:active{background:#ffcf24;color:#111}
+
+#countdown-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:64px;font-weight:900;color:#ffcf24;text-shadow:0 0 20px rgba(255,207,36,.8);display:none;pointer-events:none;z-index:20}
+.curve-badge{font-weight:bold;padding:4px 10px;border-radius:8px;display:inline-block;margin:4px 0;font-size:12px}
+
+/* Bitiş Modalı */
+#result-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:99}
+.modal-content{background:#111827;border:2px solid #eab308;border-radius:14px;padding:16px;max-width:360px;width:92%;box-shadow:0 0 30px rgba(234,179,8,.4)}
+</style>
+</head>
+<body>
+
+<div class="domain-banner">🌐 WWW.TURBORACEGAME.COM · MOTOSİKLET GP</div>
+
+<div class="header-bar">
+ <div class="stat">💰 <b id="money-display">$1,000</b></div>
+ <div class="stat">🏆 Seviye <b id="level-display">1</b></div>
+ <div class="stat">🏁 <b id="world-display">Yarış Pisti</b></div>
+ <div class="stat">🏍️ <b id="car-name-display">Ninja 360 Superbike</b></div>
+</div>
+
+<!-- ================= GARAJ EKRANI ================= -->
+<div id="garage-screen" class="screen active">
+ <h2>🏍️ ŞAMPİYON GARAJI & MOTORPARK</h2>
+ <p id="career-desc" style="font-size:12px;color:#94a3b8;margin:2px 0 8px">Yarış motosikleti 360 km/h hızla hazır! Kaldığın yerden devam ediyorsun.</p>
+
+ <div class="tabs">
+  <button id="tab-cars-btn" class="tab-btn active" onclick="switchGarageTab('cars')">🏍️ Motosikletler</button>
+  <button id="tab-engines-btn" class="tab-btn" onclick="switchGarageTab('engines')">⚙️ 150 Motor & Otopark</button>
+  <button id="tab-vip-btn" class="tab-btn" onclick="switchGarageTab('vip')">👑 VIP Lisans</button>
+ </div>
+
+ <!-- 1. MOTOSİKLETLER BÖLÜMÜ -->
+ <div id="tab-cars-content" class="garage-card">
+  <div class="car-nav">
+   <button class="btn-secondary" onclick="cycleCar(-1000)">-1000</button>
+   <button class="btn-secondary" onclick="cycleCar(-10)">-10</button>
+   <button class="btn-secondary" onclick="cycleCar(-1)">◀</button>
+   <span id="car-tier-badge" style="font-weight:bold;color:#facc15;padding:0 4px;font-size:12px">Model 1/225000</span>
+   <button class="btn-secondary" onclick="cycleCar(1)">▶</button>
+   <button class="btn-secondary" onclick="cycleCar(10)">+10</button>
+   <button class="btn-secondary" onclick="cycleCar(1000)">+1000</button>
+  </div>
+
+  <div class="car-preview-box">
+   <canvas id="garage-canvas" width="220" height="120"></canvas>
+   <h3 id="preview-car-name" style="margin:4px 0">Ninja 360 Superbike</h3>
+   <p id="preview-car-price" style="margin:2px;font-size:12px;color:#22c55e">SAHİP OLUNDU (BEDAVA)</p>
+  </div>
+
+  <div class="colors-row" id="color-picker"></div>
+  <button id="buy-select-btn" class="btn-primary" style="margin:8px 0;padding:10px" onclick="buyOrSelectCar()">KULLAN</button>
+
+  <div style="text-align:left;margin-top:8px">
+   <div class="spec-bar"><span>Maks. Motosiklet Hızı: <b id="spec-speed" style="color:#22c55e">360</b> km/sa</span><div class="bar-track"><div id="bar-speed" class="bar-fill"></div></div></div>
+   <div class="spec-bar"><span>Viraj Yatış / Dönüş Açısı: <b id="spec-steer">75</b>°</span><div class="bar-track"><div id="bar-steer" class="bar-fill"></div></div></div>
+   <div class="spec-bar"><span>Aktif Motor Gücü: <b id="spec-engine" style="color:#facc15">360 KM/H</b></span></div>
+  </div>
+ </div>
+
+ <!-- 2. 150 MOTOR BÖLÜMÜ -->
+ <div id="tab-engines-content" class="garage-card" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+   <span style="font-weight:bold;color:#facc15">⚙️ 150 Motor & Otopark Kademeleri</span>
+   <span style="font-size:11px;color:#38bdf8" id="parking-tier-label">Otopark Katı: 1</span>
+  </div>
+  <p style="font-size:11.5px;color:#94a3b8;margin:2px 0 6px">Her 25 seviyede bir daha güçlü motorlarla dolu yeni otopark katı açılır!</p>
+  <div class="motor-list" id="motor-list-container"></div>
+ </div>
+
+ <!-- 3. VIP BÖLÜMÜ -->
+ <div id="tab-vip-content" class="garage-card" style="display:none">
+  <div class="vip-card">
+   <div style="display:flex;justify-content:space-between;align-items:center">
+    <span class="vip-badge">👑 VIP PREMİUM LİSANS</span>
+    <span id="vip-status-text" style="color:#22c55e;font-weight:bold">AKTİF DEĞİL</span>
+   </div>
+   <p style="margin:6px 0 4px">Ayrıcalıklar: Çarpmalarda -$500 para düşmez, tüm yarışlarda %20 ek gelir!</p>
+   <div style="margin-top:8px">
+    <button class="btn-secondary" onclick="buyVIP('monthly')">Aylık: $1.15 / 35 TL / €0.85</button><br>
+    <button class="btn-secondary" onclick="buyVIP('yearly')">Yıllık: $3.40 / 90 TL / €2.50</button><br>
+    <button class="btn-secondary" onclick="buyVIP('lifetime')" style="background:#eab308;color:#090d16">Ömür Boyu: $5.00 / 150 TL / €4.00</button>
+   </div>
+  </div>
+ </div>
+
+ <button id="start-btn" class="btn-primary" style="font-size:17px;padding:14px" onclick="startRaceCountdown()">🏁 YARIŞA BAŞLA</button>
+ <div style="margin-top:6px">
+  <button class="btn-secondary" onclick="resetSave()" style="background:#ef4444;color:#fff;font-size:11px">Kayıtları Sıfırla (Her Şeyi Sıfırla)</button>
+ </div>
+</div>
+
+<!-- ================= YARIŞ EKRANI ================= -->
+<div id="race-screen" class="screen">
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+  <span id="track-badge">Pist: Yarış Pisti [Lap 1/3]</span>
+  <span id="rank-hud" style="font-weight:bold;color:#facc15">Sıra: 1 / 50</span>
+  <button class="btn-secondary" style="padding:4px 8px;font-size:11px" onclick="quitToGarage()">Garaja Dön</button>
+ </div>
+
+ <div id="hazard-warning-box" class="curve-badge" style="background:#334155;color:#cbd5e1">🟢 Düzlük - Gazla!</div>
+
+ <div style="position:relative;width:min(96vw,360px);margin:auto">
+  <canvas id="game" width="360" height="520"></canvas>
+  <div id="countdown-box">3</div>
+ </div>
+
+ <!-- 11 Vitesli Analog Takometre / Hız Kadranı -->
+ <div class="race-hud-bottom">
+  <canvas id="gauge-canvas" width="105" height="105"></canvas>
+  <div style="text-align:right;font-size:12px">
+   <div>HIZ: <b id="speed-num-display" style="color:#facc15;font-size:16px">0</b> km/h</div>
+   <div>VİTES: <b id="gear-text-display" style="color:#38bdf8;font-size:14px">Boşta</b></div>
+   <div>LAP: <b id="lap-display" style="color:#22c55e">1 / 3</b></div>
+   <div style="color:#94a3b8" id="remain-dist-display">Kalan: 2.0 KM</div>
+  </div>
+ </div>
+
+ <div class="controls">
+  <button id="left" class="ctrl-btn">⬅️ SOL</button>
+  <button id="gas" class="ctrl-btn">⬆️ GAZ</button>
+  <button id="brake" class="ctrl-btn">⬇️ FREN / R</button>
+  <button id="right" class="ctrl-btn">➡️ SAĞ</button>
+ </div>
+</div>
+
+<!-- ================= SONUÇ MODALI ================= -->
+<div id="result-modal">
+ <div class="modal-content">
+  <h2 id="res-title">🏁 YARIŞ BİTTİ</h2>
+  <p id="res-rank" style="font-size:18px;font-weight:bold;color:#facc15;margin:4px 0">Sıralama: 1. / 50</p>
+  <p id="res-prize" style="color:#22c55e;font-size:17px;font-weight:bold;margin:2px 0">Ödül: +$5,000,000</p>
+  <div id="res-level-bonus" style="font-size:11px;color:#facc15;margin:4px 0"></div>
+  <button class="btn-primary" style="margin-top:6px;padding:10px" onclick="closeResultModal()">GARAJA DÖN</button>
+ </div>
+</div>
+
+<script>
+'use strict';
+
+const SAVE='turboYaris50_UltraReal_v22';
+const PREV_KEYS=[
+ 'turboYaris50_UltraReal_v22',
+ 'turboYaris50_MidStart_v21',
+ 'turboYaris50_SuperCar_v20',
+ 'turboYaris50_ReverseGrid_v19',
+ 'turboYaris50_HandlingRevamp_v18'
+];
+
+const SPEED_CAP = 520;
+const TOTAL_CARS = 225000;
+const FREE_CARS_COUNT = 150;
+const ROAD_HALF = 105;
+const PLAYER_SCREEN_Y = 380;
+const METER_SCALE = 1.6;
+
+/* --- 150 MOTOR LİSTESİ --- */
+const ENGINES = [];
+for(let i=0; i<50; i++){
+ const t = i/49;
+ ENGINES.push({
+  id: i,
+  tier: 1,
+  name: `Eco V${i+1} Başlangıç`,
+  topSpeed: Math.round(70 + t * 50),
+  price: Math.round(33000 + t * 37000),
+  accel: +(1.0 + t * 0.4).toFixed(2),
+  minLevelReq: Math.floor(i / 2)
+ });
+}
+for(let i=50; i<100; i++){
+ const t = (i-50)/49;
+ ENGINES.push({
+  id: i,
+  tier: 2,
+  name: `Turbo GT-X${i-49} Orta`,
+  topSpeed: Math.round(180 + t * 90),
+  price: Math.round(1000000 + t * 1500000),
+  accel: +(1.6 + t * 0.8).toFixed(2),
+  minLevelReq: 25 + Math.floor((i-50) / 2)
+ });
+}
+for(let i=100; i<150; i++){
+ const t = (i-100)/49;
+ ENGINES.push({
+  id: i,
+  tier: 3,
+  name: `Pro Apex-R${i-99} Yarış`,
+  topSpeed: Math.round(360 + t * 160),
+  price: Math.round(5000000 + t * 45000000),
+  accel: +(2.5 + t * 2.0).toFixed(2),
+  minLevelReq: 50 + Math.floor((i-100) / 2)
+ });
+}
+
+/* --- DİNAMİK 225.000 MOTOSİKLET FİLOSU (İLK MODEL: 360 KM/H) --- */
+function getCarData(i){
+ const isFree = i < FREE_CARS_COUNT;
+ let price = 0;
+ if(!isFree){
+  const t = (i - (FREE_CARS_COUNT - 1)) / (TOTAL_CARS - FREE_CARS_COUNT);
+  price = Math.round(2500000 + t * 5000000000);
+ }
+
+ // İLK MODEL: MOTOSİKLET 360 KM/H İLE GİTSİN!
+ if(i === 0){
+  return {
+   id: 0,
+   name: "Ninja 360 Superbike",
+   price: 0,
+   desc: "İlk Motosiklet: 360 KM/H Hız",
+   baseSpeed: 360,    // 360 KM/H HIZ!
+   maxSpeedCap: 360,
+   baseSteer: 75,
+   maxSteerCap: 120,
+   baseAccel: 2.4,
+   maxAccel: 3.2,
+   baseBrake: 75,
+   maxBrake: 110,
+   baseReverse: 40,
+   maxReverseCap: 55
+  };
+ }
+ if(i === 1){
+  return { id: 1, name: "Ducati GP-210", price: 0, desc: "2. Tur Yarış Motoru", baseSpeed: 210, maxSpeedCap: 260, baseSteer: 80, maxSteerCap: 130, baseAccel: 2.2, maxAccel: 3.2, baseBrake: 70, maxBrake: 130, baseReverse: 40, maxReverseCap: 55 };
+ }
+ if(i === 2){
+  return { id: 2, name: "Apex GP-520", price: 0, desc: "Süper Yarış Motoru", baseSpeed: 360, maxSpeedCap: 520, baseSteer: 115, maxSteerCap: 210, baseAccel: 2.5, maxAccel: 4.65, baseBrake: 100, maxBrake: 150, baseReverse: 40, maxReverseCap: 55 };
+ }
+ if(i === 3){
+  return { id: 3, name: "Chronos Hayabusa", price: 0, desc: "Hipersonik Motor", baseSpeed: 400, maxSpeedCap: 520, baseSteer: 210, maxSteerCap: 400, baseAccel: 3.3, maxAccel: 5.0, baseBrake: 80, maxBrake: 140, baseReverse: 50, maxReverseCap: 80 };
+ }
+
+ const baseSpeed = Math.min(520, 360 + (i % 160));
+ return {
+  id: i,
+  name: isFree ? `Superbike R-${i+1} (Bedava)` : `Quantum Bike #${i+1}`,
+  price,
+  baseSpeed,
+  maxSpeedCap: 520,
+  baseSteer: Math.min(210, Math.round(75 + (i / 150) * 135)),
+  baseAccel: 2.4,
+  maxAccel: 3.8
+ };
+}
+
+const COLORS=['#f43f5e','#3b82f6','#eab308','#10b981','#a855f7','#f97316','#06b6d4','#ffffff'];
+const RIVAL_NAMES=["Demir","Kaan","Bora","Can","Volkan","Serkan","Mert","Okan","Burak","Arda","Cem","Emre","Tolga","Yiğit","Doruk","Alp","Sinan","Barış","Taha","Enes","Umut","Ege","Kerem","Sarp","Batuhan","Onur","Kuzey","Rüzgar","Yaman","Görkem","Deniz","Kadir","Metin","Oğuz","Turan","Taner","Yasin","Furkan","Erdem","Zafer","Taylan","Levent","Harun","Sedat","Murat","İlker","Selim","Cihan","Yavuz"];
+
+let money = 1000;
+let level = 1;
+let currentCarIndex = 0;
+let currentEngineId = 0;
+let previewIndex = 0;
+let ownedCarsMap = {};
+let ownedEngines = [0];
+let isVIP = false;
+let rivalDrivers = [];
+let lastRaceOrder = null;
+
+let speed = 0;
+let distance = 0;
+let currentLap = 1;
+let totalLaps = 1;
+let trackTotalLen = 2000;
+let running = false;
+let ended = false;
+let inCountdown = false;
+let last = 0;
+let raf = 0;
+let hitCooldown = 0;
+let keys = {};
+let rivals = [];
+
+let volcanoTimer = 0;
+let volcanoStartDist = 0;
+let volcanoActive = false;
+let animalStunTimer = 0;
+
+const player = { offset:0, y:PLAYER_SCREEN_Y, progress:0, angle:0, wheelAngle:0, carNumber:1 };
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const gCanvas = document.getElementById('garage-canvas');
+const gCtx = gCanvas.getContext('2d');
+const gaugeCanvas = document.getElementById('gauge-canvas');
+const gaugeCtx = gaugeCanvas.getContext('2d');
+const $ = id => document.getElementById(id);
+
+function getWorldConfig(lvl){
+ if(lvl <= 75){
+  const length = 2000 + ((lvl-1)/74) * 1000;
+  return {
+   worldName: "Yarış Pisti",
+   laps: 3,
+   lapLen: length,
+   totalDist: length * 3,
+   asphalt: "#242c38",
+   curb1: "#ef4444",
+   curb2: "#ffffff",
+   grass: "#15803d",
+   turnLoss: 30,
+   grassLoss: 0.90,
+   fenceLoss: 25
+  };
+ }else if(lvl <= 167){
+  const length = 1000 + ((lvl-76)/91) * 1500;
+  return {
+   worldName: "Çöl Pisti",
+   laps: 1,
+   lapLen: length,
+   totalDist: length,
+   asphalt: "#78350f",
+   curb1: "#f59e0b",
+   curb2: "#451a03",
+   grass: "#d97706",
+   turnLoss: 37.5,
+   hasQuicksand: true
+  };
+ }else if(lvl <= 274){
+  const length = 1000 + ((lvl-168)/106) * 4000;
+  return {
+   worldName: "Dağ Yamacı",
+   laps: 1,
+   lapLen: length,
+   totalDist: length,
+   asphalt: "#334155",
+   curb1: "#38bdf8",
+   curb2: "#e2e8f0",
+   grass: "#475569",
+   hasStorm: true,
+   hasSeaFall: true
+  };
+ }else{
+  const length = 1500 + (Math.min(1, (lvl-275)/1000)) * 2000;
+  return {
+   worldName: "Mağara & Orman",
+   laps: 1,
+   lapLen: length,
+   totalDist: length,
+   asphalt: "#1c1917",
+   curb1: "#ea580c",
+   curb2: "#14532d",
+   grass: "#15803d",
+   hasVolcano: true,
+   hasWildAnimal: true
+  };
+ }
+}
+
+function getGearInfo(curSpd){
+ if(curSpd < 0) return { gear: "R", ratio: Math.abs(curSpd)/60 };
+ if(curSpd < 2) return { gear: "Boşta", ratio: 0 };
+ if(curSpd <= 35) return { gear: "1", ratio: curSpd/35 };
+ if(curSpd <= 75) return { gear: "2", ratio: (curSpd-35)/40 };
+ if(curSpd <= 120) return { gear: "3", ratio: (curSpd-75)/45 };
+ if(curSpd <= 180) return { gear: "4", ratio: (curSpd-120)/60 };
+ if(curSpd <= 270) return { gear: "5", ratio: (curSpd-180)/90 };
+ if(curSpd <= 315) return { gear: "6", ratio: (curSpd-270)/45 };
+ if(curSpd <= 360) return { gear: "7", ratio: (curSpd-315)/45 };
+ if(curSpd <= 400) return { gear: "8", ratio: (curSpd-360)/40 };
+ if(curSpd <= 440) return { gear: "9", ratio: (curSpd-400)/40 };
+ if(curSpd <= 480) return { gear: "10", ratio: (curSpd-440)/40 };
+ return { gear: "11", ratio: (curSpd-480)/40 };
+}
+
+function calculateRacePrize(rank){
+ let base = 0;
+ if(rank === 1) base = 5000000;
+ else if(rank === 2) base = 2500000;
+ else if(rank === 3) base = 1000000;
+ 
+ let bonus = 0;
+ if(rank <= 5) bonus += 200000;
+ if(rank <= 10) bonus += 50000;
+ if(rank <= 15) bonus += 10000;
+ if(rank <= 20) bonus += 5000;
+ bonus += 1000;
+
+ return { total: base + bonus, base, bonus };
+}
+
+function getTenLevelBonus(lvl){
+ if(lvl % 10 !== 0) return 0;
+ const step = lvl / 10;
+ return Math.round(25000000 * Math.pow(1.10, step - 1));
+}
+
+function getEffectiveSpeed(carIdx){
+ const car = getCarData(carIdx);
+ const eng = ENGINES[currentEngineId] || ENGINES[0];
+ const carSpd = car.baseSpeed || 360;
+ return Math.min(SPEED_CAP, Math.max(carSpd, eng.topSpeed));
+}
+
+function loadData(){
+ let d=null;
+ for(const key of PREV_KEYS){
+  try{
+   const item=localStorage.getItem(key);
+   if(item){ d=JSON.parse(item); break; }
+  }catch(e){}
+ }
+ if(d){
+  money = d.money ?? 1000;
+  level = Math.min(MAX_LEVEL, d.level ?? 1);
+  currentCarIndex = Math.min(TOTAL_CARS-1, d.currentCarIndex ?? 0);
+  currentEngineId = d.currentEngineId ?? 0;
+  ownedEngines = d.ownedEngines ?? [0];
+  isVIP = d.isVIP ?? false;
+  rivalDrivers = d.rivalDrivers ?? [];
+  lastRaceOrder = d.lastRaceOrder ?? null;
+ }
+ if(!rivalDrivers || rivalDrivers.length < 49) initRivalDrivers();
+ previewIndex = currentCarIndex;
+ updateHeader();
+ renderGarage();
+}
+
+function saveData(){
+ try{
+  localStorage.setItem(SAVE, JSON.stringify({
+   money, level, currentCarIndex, currentEngineId, ownedEngines, isVIP, rivalDrivers, lastRaceOrder
+  }));
+ }catch(e){}
+ updateHeader();
+}
+
+function updateHeader(){
+ $('money-display').textContent = `$${money.toLocaleString()}`;
+ $('level-display').textContent = level.toLocaleString();
+ const cfg = getWorldConfig(level);
+ $('world-display').textContent = cfg.worldName;
+ $('car-name-display').textContent = getCarData(currentCarIndex).name;
+}
+
+function switchGarageTab(tab){
+ $('tab-cars-content').style.display = tab==='cars' ? 'block' : 'none';
+ $('tab-engines-content').style.display = tab==='engines' ? 'block' : 'none';
+ $('tab-vip-content').style.display = tab==='vip' ? 'block' : 'none';
+ 
+ $('tab-cars-btn').className = 'tab-btn' + (tab==='cars' ? ' active' : '');
+ $('tab-engines-btn').className = 'tab-btn' + (tab==='engines' ? ' active' : '');
+ $('tab-vip-btn').className = 'tab-btn' + (tab==='vip' ? ' active' : '');
+
+ if(tab==='engines') renderEnginesList();
+ if(tab==='vip') updateVIPUI();
+}
+
+function updateVIPUI(){
+ $('vip-status-text').textContent = isVIP ? "AKTİF (AYRICALIKLI ÜYE)" : "AKTİF DEĞİL";
+ $('vip-status-text').style.color = isVIP ? "#22c55e" : "#ef4444";
+}
+
+function buyVIP(type){
+ isVIP = true;
+ saveData();
+ updateVIPUI();
+ alert("👑 VIP Üyelik Aktif Edildi! Çarpmalarda para kaybetmeyeceksin.");
+}
+
+function renderEnginesList(){
+ const container = $('motor-list-container');
+ container.innerHTML = '';
+ const currentParkingTier = 1 + Math.floor((level - 1) / 25);
+ $('parking-tier-label').textContent = `Otopark Katı: ${currentParkingTier} (Seviye ${level})`;
+
+ ENGINES.forEach(eng => {
+  const isUnlockedParking = level >= eng.minLevelReq;
+  const isOwned = ownedEngines.includes(eng.id);
+  const isEquipped = currentEngineId === eng.id;
+
+  const item = document.createElement('div');
+  item.className = 'motor-item';
+  item.innerHTML = `
+   <div>
+    <b>${eng.name}</b><br>
+    <small style="color:#38bdf8">${eng.topSpeed} KM/H</small> · 
+    <small style="color:#10b981">%${Math.round(eng.accel*100)} Motor</small>
+   </div>
+   <div>
+    ${isEquipped ? '<span style="color:#22c55e;font-weight:bold">TAKILI</span>' :
+      isOwned ? `<button class="btn-secondary" onclick="equipEngine(${eng.id})">Kullan</button>` :
+      !isUnlockedParking ? `<span style="color:#ef4444;font-size:11px">Otopark Katı Kilitli</span>` :
+      `<button class="btn-secondary" onclick="buyEngine(${eng.id})">Satın Al ($${eng.price.toLocaleString()})</button>`
+    }
+   </div>
+  `;
+  container.appendChild(item);
+ });
+}
+
+function buyEngine(id){
+ const eng = ENGINES[id];
+ if(money >= eng.price){
+  money -= eng.price;
+  ownedEngines.push(id);
+  currentEngineId = id;
+  saveData();
+  renderEnginesList();
+  renderGarage();
+ }else{
+  alert("Yetersiz bakiye!");
+ }
+}
+
+function equipEngine(id){
+ currentEngineId = id;
+ saveData();
+ renderEnginesList();
+ renderGarage();
+}
+
+function cycleCar(delta){
+ previewIndex = (previewIndex + delta + TOTAL_CARS) % TOTAL_CARS;
+ renderGarage();
+}
+
+function renderGarage(){
+ const car = getCarData(previewIndex);
+ const isOwned = previewIndex < FREE_CARS_COUNT || !!ownedCarsMap[previewIndex];
+ const isCurrent = currentCarIndex === previewIndex;
+
+ $('preview-car-name').textContent = car.name;
+ $('car-tier-badge').textContent = `Model ${previewIndex+1}/${TOTAL_CARS.toLocaleString()}`;
+ $('preview-car-price').textContent = car.price === 0 ? "SAHİP OLUNDU (BEDAVA)" : `$${car.price.toLocaleString()}`;
+ $('preview-car-price').style.color = "#22c55e";
+
+ const btn = $('buy-select-btn');
+ if(!isOwned){
+  btn.textContent = `🛒 SATIN AL ($${car.price.toLocaleString()})`;
+  btn.style.background = 'linear-gradient(135deg,#3b82f6,#2563eb)';
+ }else if(isCurrent){
+  btn.textContent = "SEÇİLDİ (HAZIR)";
+  btn.style.background = '#1e293b';
+ }else{
+  btn.textContent = "BU ARACI SEÇ";
+  btn.style.background = 'linear-gradient(135deg,#eab308,#f59e0b)';
+ }
+
+ const effSpd = getEffectiveSpeed(previewIndex);
+ $('spec-speed').textContent = effSpd;
+ $('spec-steer').textContent = car.baseSteer || 75;
+ $('spec-engine').textContent = `${effSpd} KM/H`;
+ $('bar-speed').style.width = `${(effSpd / SPEED_CAP) * 100}%`;
+ $('bar-steer').style.width = `${Math.min(100, ((car.baseSteer || 75) / 210) * 100)}%`;
+
+ drawGarageMotorbike();
+}
+
+function buyOrSelectCar(){
+ const car = getCarData(previewIndex);
+ const isOwned = previewIndex < FREE_CARS_COUNT || !!ownedCarsMap[previewIndex];
+
+ if(!isOwned){
+  if(money >= car.price){
+   money -= car.price;
+   ownedCarsMap[previewIndex] = true;
+   currentCarIndex = previewIndex;
+   saveData();
+   renderGarage();
+  }else{
+   alert("Yetersiz bakiye!");
+  }
+ }else{
+  currentCarIndex = previewIndex;
+  saveData();
+  renderGarage();
+ }
+}
+
+function drawGarageMotorbike(){
+ gCtx.clearRect(0,0,220,120);
+ gCtx.save();
+ gCtx.translate(110, 25);
+ drawMotorbike(gCtx, 0, 0, COLORS[previewIndex % COLORS.length], 1.25, 0, 0, previewIndex, 1);
+ gCtx.restore();
+}
+
+/* ================= 11 VİTESLİ ANALOG KADRAN ÇİZİMİ ================= */
+function drawGearGauge(curSpd){
+ gaugeCtx.clearRect(0,0,105,105);
+ const cx = 52.5, cy = 52.5, r = 46;
+
+ gaugeCtx.save();
+ gaugeCtx.beginPath();
+ gaugeCtx.arc(cx, cy, r, 0, Math.PI * 2);
+ gaugeCtx.fillStyle = '#0f172a';
+ gaugeCtx.fill();
+ gaugeCtx.lineWidth = 3;
+ gaugeCtx.strokeStyle = '#334155';
+ gaugeCtx.stroke();
+
+ const totalNotches = 12;
+ for(let i=0; i<totalNotches; i++){
+  const ang = Math.PI * 0.75 + (i / 11) * (Math.PI * 1.5);
+  const x1 = cx + Math.cos(ang) * (r - 4);
+  const y1 = cy + Math.sin(ang) * (r - 4);
+  const x2 = cx + Math.cos(ang) * (r - 10);
+  const y2 = cy + Math.sin(ang) * (r - 10);
+
+  gaugeCtx.beginPath();
+  gaugeCtx.moveTo(x1, y1);
+  gaugeCtx.lineTo(x2, y2);
+  gaugeCtx.lineWidth = (i===0 || i===4 || i===7 || i===11) ? 2 : 1;
+  gaugeCtx.strokeStyle = i >= 9 ? '#ef4444' : '#94a3b8';
+  gaugeCtx.stroke();
+ }
+
+ gaugeCtx.fillStyle = '#facc15';
+ gaugeCtx.font = 'bold 8px Arial';
+ gaugeCtx.textAlign = 'center';
+ gaugeCtx.textBaseline = 'middle';
+ gaugeCtx.fillText('0', cx - 24, cy + 24);
+ gaugeCtx.fillText('520', cx + 24, cy + 24);
+
+ const speedNorm = Math.min(1.0, Math.max(0, Math.abs(curSpd) / SPEED_CAP));
+ const needleAng = Math.PI * 0.75 + speedNorm * (Math.PI * 1.5);
+
+ gaugeCtx.beginPath();
+ gaugeCtx.moveTo(cx, cy);
+ gaugeCtx.lineTo(cx + Math.cos(needleAng) * (r - 8), cy + Math.sin(needleAng) * (r - 8));
+ gaugeCtx.lineWidth = 2.5;
+ gaugeCtx.strokeStyle = '#ef4444';
+ gaugeCtx.stroke();
+
+ gaugeCtx.beginPath();
+ gaugeCtx.arc(cx, cy, 4, 0, Math.PI*2);
+ gaugeCtx.fillStyle = '#ffffff';
+ gaugeCtx.fill();
+
+ const gInfo = getGearInfo(curSpd);
+ gaugeCtx.fillStyle = gInfo.gear === "R" ? '#38bdf8' : '#ffffff';
+ gaugeCtx.font = 'bold 11px Arial';
+ gaugeCtx.fillText(gInfo.gear, cx, cy - 14);
+
+ gaugeCtx.restore();
+
+ $('speed-num-display').textContent = Math.round(Math.abs(curSpd));
+ $('gear-text-display').textContent = gInfo.gear;
+}
+
+/* ================= GERÇEKÇİ MOTOSİKLET VE SÜRÜCÜ ÇİZİMİ ================= */
+function drawMotorbike(targetCtx, x, y, color, scale, bodyAngle, wheelAngle, modelIdx, bikeNum){
+ targetCtx.save();
+ targetCtx.translate(x, y + 26);
+ targetCtx.rotate(bodyAngle);
+ targetCtx.scale(scale, scale);
+
+ // 1. Dinamik Gölge (Viraj açısıyla birlikte yatar)
+ targetCtx.save();
+ targetCtx.fillStyle = 'rgba(0,0,0,0.42)';
+ targetCtx.beginPath();
+ targetCtx.ellipse(3, 4, 12, 34, wheelAngle * 0.4, 0, Math.PI * 2);
+ targetCtx.fill();
+ targetCtx.restore();
+
+ // 2. Kalın Arka Yarış Lastiği (Slick Tire)
+ targetCtx.fillStyle = '#0a0f1d';
+ targetCtx.beginPath();
+ targetCtx.roundRect(-4.5, 14, 9, 22, 3);
+ targetCtx.fill();
+
+ // 3. Krom Yarış Egzozu (Sağ Taraf)
+ targetCtx.fillStyle = '#64748b';
+ targetCtx.fillRect(6, 12, 3.5, 16);
+ targetCtx.fillStyle = '#334155';
+ targetCtx.beginPath();
+ targetCtx.arc(7.7, 28, 1.8, 0, Math.PI*2);
+ targetCtx.fill();
+
+ // 4. Ön Çatal ve Dönen Ön Lastik
+ targetCtx.save();
+ targetCtx.translate(0, -22);
+ targetCtx.rotate(wheelAngle);
+ // Ön Çatal bacakları
+ targetCtx.fillStyle = '#cbd5e1';
+ targetCtx.fillRect(-5, -6, 2, 14);
+ targetCtx.fillRect(3, -6, 2, 14);
+ // Ön Tekerlek
+ targetCtx.fillStyle = '#0a0f1d';
+ targetCtx.beginPath();
+ targetCtx.roundRect(-3.5, -12, 7, 20, 2.5);
+ targetCtx.fill();
+ // Ön Çamurluk
+ targetCtx.fillStyle = color;
+ targetCtx.fillRect(-4, -10, 8, 8);
+ targetCtx.restore();
+
+ // 5. Motosiklet Ana Gövdesi / Grenaj
+ targetCtx.fillStyle = color;
+ targetCtx.beginPath();
+ targetCtx.moveTo(0, -26);
+ targetCtx.lineTo(9, -14);
+ targetCtx.lineTo(6, 16);
+ targetCtx.lineTo(0, 24);
+ targetCtx.lineTo(-6, 16);
+ targetCtx.lineTo(-9, -14);
+ targetCtx.closePath();
+ targetCtx.fill();
+
+ // Grenaj aerodinamik detayları
+ targetCtx.fillStyle = '#0f172a';
+ targetCtx.fillRect(-5, -10, 10, 8);
+
+ // Ön Rüzgarlık (Windshield)
+ targetCtx.fillStyle = '#38bdf8';
+ targetCtx.beginPath();
+ targetCtx.moveTo(0, -24);
+ targetCtx.lineTo(4, -16);
+ targetCtx.lineTo(-4, -16);
+ targetCtx.closePath();
+ targetCtx.fill();
+
+ // Ön LED Far
+ targetCtx.fillStyle = '#fef08a';
+ targetCtx.fillRect(-3, -26, 6, 2);
+
+ // 6. YARIŞÇI / SÜRÜCÜ (Tulum, Kask, Vizör ve Yarış Pozisyonu)
+ // Sürücü Bacakları / Diz Slider'ları (Virajda yana yatar!)
+ const kneeShift = Math.sin(wheelAngle) * 4;
+ targetCtx.fillStyle = '#1e293b';
+ targetCtx.beginPath();
+ targetCtx.roundRect(-10 + kneeShift, 4, 5, 10, 2);
+ targetCtx.roundRect(5 + kneeShift, 4, 5, 10, 2);
+ targetCtx.fill();
+
+ // Yarışçı Gövdesi (Tulum)
+ targetCtx.fillStyle = '#0f172a';
+ targetCtx.beginPath();
+ targetCtx.ellipse(kneeShift * 0.4, 0, 7.5, 10, 0, 0, Math.PI*2);
+ targetCtx.fill();
+
+ // Kollar & Gidon Tutuşu
+ targetCtx.fillStyle = color;
+ targetCtx.beginPath();
+ targetCtx.moveTo(-8, -12); targetCtx.lineTo(-4, -4);
+ targetCtx.moveTo(8, -12); targetCtx.lineTo(4, -4);
+ targetCtx.lineWidth = 2.5;
+ targetCtx.strokeStyle = '#0f172a';
+ targetCtx.stroke();
+
+ // Kask
+ targetCtx.fillStyle = '#f8fafc';
+ targetCtx.beginPath();
+ targetCtx.arc(kneeShift * 0.5, -4, 5.5, 0, Math.PI*2);
+ targetCtx.fill();
+
+ // Kask Vizörü (Koyu cam)
+ targetCtx.fillStyle = '#0284c7';
+ targetCtx.beginPath();
+ targetCtx.arc(kneeShift * 0.5, -6, 4.5, Math.PI, 0);
+ targetCtx.fill();
+
+ // Arka Kuyruk ve Yarış Numarası
+ if(bikeNum){
+  targetCtx.save();
+  targetCtx.fillStyle = '#ffffff';
+  targetCtx.beginPath();
+  targetCtx.arc(0, 18, 5.5, 0, Math.PI*2);
+  targetCtx.fill();
+  targetCtx.fillStyle = '#000000';
+  targetCtx.font = 'bold 7px Arial';
+  targetCtx.textAlign = 'center';
+  targetCtx.textBaseline = 'middle';
+  targetCtx.fillText(bikeNum, 0, 18.5);
+  targetCtx.restore();
+ }
+
+ // Arka Kırmızı LED Stop Lambası
+ targetCtx.fillStyle = '#ef4444';
+ targetCtx.fillRect(-2.5, 23, 5, 2);
+
+ targetCtx.restore();
+}
+
+function startRaceCountdown(){
+ $('garage-screen').classList.remove('active');
+ $('race-screen').classList.add('active');
+
+ const cfg = getWorldConfig(level);
+ trackTotalLen = cfg.lapLen;
+ totalLaps = cfg.laps;
+ currentLap = 1;
+
+ resetRaceState();
+ draw();
+
+ inCountdown = true;
+ const box = $('countdown-box');
+ box.style.display = 'block';
+ let count = 3;
+ box.textContent = count;
+
+ const timer = setInterval(()=>{
+  count--;
+  if(count > 0){
+   box.textContent = count;
+  }else if(count === 0){
+   box.textContent = 'GAZLA!';
+   box.style.color = '#22c55e';
+  }else{
+   clearInterval(timer);
+   box.style.display = 'none';
+   box.style.color = '#ffcf24';
+   inCountdown = false;
+   running = true;
+   last = performance.now();
+   raf = requestAnimationFrame(loop);
+  }
+ }, 900);
+}
+
+function resetRaceState(){
+ if(raf) cancelAnimationFrame(raf);
+ speed = 0;
+ distance = 0;
+ hitCooldown = 0;
+ ended = false;
+ keys = {};
+ volcanoTimer = 0;
+ volcanoActive = false;
+ animalStunTimer = 0;
+
+ player.offset = 0;
+ player.y = PLAYER_SCREEN_Y;
+ player.angle = 0;
+ player.wheelAngle = 0;
+
+ rivals = [];
+ const playerMaxSpd = getEffectiveSpeed(currentCarIndex);
+
+ for(let i=0; i<49; i++){
+  rivals.push({
+   id: i+1,
+   carNumber: i+2,
+   name: RIVAL_NAMES[i % RIVAL_NAMES.length],
+   offset: (i % 2 === 0 ? -35 : 35),
+   progress: -(i + 1) * 6,
+   speed: 0,
+   topSpeed: Math.max(80, playerMaxSpd * (0.86 + (i/49)*0.10)),
+   color: COLORS[(i+1) % COLORS.length]
+  });
+ }
+}
+
+function quitToGarage(){
+ running = false;
+ inCountdown = false;
+ if(raf) cancelAnimationFrame(raf);
+ $('race-screen').classList.remove('active');
+ $('garage-screen').classList.add('active');
+ renderGarage();
+}
+
+function finishRace(rank){
+ running = false;
+ ended = true;
+ keys = {};
+
+ const p = calculateRacePrize(rank);
+ money += p.total;
+
+ const tenBonus = getTenLevelBonus(level);
+ if(tenBonus > 0){
+  money += tenBonus;
+  $('res-level-bonus').textContent = `🎁 10. SEVİYE SÜPER BONUSU: +$${tenBonus.toLocaleString()}!`;
+ }else{
+  $('res-level-bonus').textContent = '';
+ }
+
+ $('res-rank').textContent = `Sıralama: ${rank}. / 50`;
+ $('res-prize').textContent = `Kazanılan Ödül: +$${p.total.toLocaleString()}`;
+
+ level++;
+ saveData();
+ $('result-modal').style.display = 'flex';
+}
+
+function closeResultModal(){
+ $('result-modal').style.display = 'none';
+ quitToGarage();
+}
+
+/* ================= OYUN DÖNGÜSÜ ================= */
+function loop(now){
+ if(!running) return;
+ const dt = Math.min(Math.max((now - last) / 16.667, 0), 1.8);
+ last = now;
+
+ const cfg = getWorldConfig(level);
+ const maxAllowedSpeed = getEffectiveSpeed(currentCarIndex);
+
+ if(animalStunTimer > 0){
+  animalStunTimer -= dt * 0.016;
+  speed = 0;
+  $('hazard-warning-box').textContent = `🐾 VAHŞİ HAYVAN YEDİ! (${Math.ceil(animalStunTimer)}s)`;
+  draw();
+  raf = requestAnimationFrame(loop);
+  return;
+ }
+
+ const isGas = keys.w || keys.arrowup;
+ const isBrake = keys.s || keys.arrowdown;
+
+ if(isGas){
+  if(speed < 0) speed = Math.min(0, speed + 1.2 * dt);
+  else speed = Math.min(maxAllowedSpeed, speed + 0.65 * dt); // 360 km/h hızlanma gücü
+ }else if(isBrake){
+  if(speed > 0) speed = Math.max(0, speed - 1.5 * dt);
+  else speed = Math.max(-60, speed - 0.25 * dt);
+ }else{
+  if(speed > 0) speed = Math.max(0, speed - 0.08 * dt);
+  else if(speed < 0) speed = Math.min(0, speed + 0.12 * dt);
+ }
+
+ // Motosiklet kıvrak dönüş ve viraja yatış fiziği
+ const turnPwr = 2.1 * dt * Math.max(0.4, Math.min(1.2, Math.abs(speed)/90));
+ let targetWheel = 0, targetBody = 0;
+ if(keys.a || keys.arrowleft){
+  player.offset -= (speed >= 0 ? turnPwr : -turnPwr);
+  targetWheel = -0.45; // Gidon açısı
+  targetBody = -0.22;  // Motosikletin viraja yatışı
+ }
+ if(keys.d || keys.arrowright){
+  player.offset += (speed >= 0 ? turnPwr : -turnPwr);
+  targetWheel = 0.45;
+  targetBody = 0.22;
+ }
+
+ player.wheelAngle += (targetWheel - player.wheelAngle) * 0.25 * dt;
+ player.angle += (targetBody - player.angle) * 0.20 * dt;
+
+ if(Math.abs(player.offset) > ROAD_HALF - 14){
+  if(cfg.grassLoss && speed > 0) speed = Math.max(20, speed - cfg.grassLoss * dt * 0.5);
+ }
+ if(Math.abs(player.offset) > ROAD_HALF + 10){
+  if(cfg.fenceLoss && speed > 0) speed = Math.max(15, speed - cfg.fenceLoss * 0.05 * dt);
+ }
+
+ if(cfg.hasQuicksand){
+  const cycle500 = Math.floor(distance) % 500;
+  if(cycle500 >= 0 && cycle500 <= 40){
+   const isRightSide = Math.floor(distance / 500) % 2 === 0;
+   const inSwamp = isRightSide ? (player.offset > 20) : (player.offset < -20);
+   if(inSwamp && speed > 0){
+    speed = Math.max(25, speed - 0.8 * dt);
+    $('hazard-warning-box').textContent = "⚠️ BATAKLIĞA SAPLANDIN! Hız düşüyor.";
+   }
+  }
+ }
+
+ if(cfg.hasStorm){
+  player.offset += Math.sin(now * 0.003) * 0.4 * dt;
+ }
+ if(cfg.hasSeaFall && Math.abs(player.offset) > ROAD_HALF + 25){
+  speed = 0;
+  distance = 0;
+  player.progress = 0;
+  player.offset = 0;
+  alert("🌊 UÇURUMDAN DENİZE DÜŞTÜN! Başlangıç çizgisine döndün.");
+ }
+
+ if(cfg.hasVolcano){
+  if(!volcanoActive && distance > 500 && Math.floor(distance)%1500 < 50){
+   volcanoActive = true;
+   volcanoTimer = 15;
+   volcanoStartDist = distance;
+  }
+  if(volcanoActive){
+   volcanoTimer -= dt * 0.016;
+   const distRun = distance - volcanoStartDist;
+   $('hazard-warning-box').textContent = `🌋 YANARDAĞ PATLADI! (${Math.ceil(volcanoTimer)}s içinde 500M kaç!) [${Math.round(distRun)}m]`;
+   if(distRun >= 500){
+    volcanoActive = false;
+    $('hazard-warning-box').textContent = "✅ Yanardağdan başarıyla kaçtın!";
+   }else if(volcanoTimer <= 0){
+    volcanoActive = false;
+    speed = Math.max(10, speed * 0.4);
+    alert("🔥 YANARDAĞ LAVI VURDU! Ciddi hız kaybettin.");
+   }
+  }
+ }
+
+ if(cfg.hasWildAnimal && Math.floor(distance)%800 > 750 && Math.abs(player.offset) < 25){
+  if(animalStunTimer <= 0){
+   animalStunTimer = 10;
+   if(!isVIP) money = Math.max(0, money - 1500);
+   saveData();
+  }
+ }
+
+ player.offset = Math.max(-ROAD_HALF - 26, Math.min(ROAD_HALF + 26, player.offset));
+
+ const advance = (speed * dt) / 320;
+ player.progress += advance;
+ distance += advance;
+
+ if(cfg.laps > 1){
+  if(distance >= cfg.lapLen){
+   distance -= cfg.lapLen;
+   currentLap++;
+   if(currentLap > cfg.laps){
+    finishRace(1);
+    return;
+   }
+  }
+  $('lap-display').textContent = `${currentLap} / ${cfg.laps}`;
+ }else{
+  $('lap-display').textContent = `Tek Tur`;
+  if(distance >= cfg.totalDist){
+   finishRace(1);
+   return;
+  }
+ }
+
+ const rem = Math.max(0, Math.ceil(cfg.totalDist - (currentLap-1)*cfg.lapLen - distance));
+ $('remain-dist-display').textContent = `Kalan: ${rem >= 1000 ? (rem/1000).toFixed(1)+' KM' : rem+' M'}`;
+
+ if(hitCooldown > 0) hitCooldown -= dt;
+ for(const r of rivals){
+  r.progress += (r.topSpeed * dt) / 320;
+
+  if(hitCooldown <= 0 && Math.abs(player.progress - r.progress) < 3.0 && Math.abs(player.offset - r.offset) < 18){
+   hitCooldown = 25;
+   speed = Math.max(15, speed * 0.80);
+   player.offset += (player.offset > r.offset ? 10 : -10);
+
+   if(!isVIP){
+    money = Math.max(0, money - 500);
+    saveData();
+    $('hazard-warning-box').textContent = "💥 ÇARPIŞMA! -$500 Para Düştü!";
+   }
+   break;
+  }
+ }
+
+ draw();
+ drawGearGauge(speed);
+ if(running) raf = requestAnimationFrame(loop);
+}
+
+function draw(){
+ ctx.clearRect(0,0,360,520);
+ const cfg = getWorldConfig(level);
+
+ ctx.fillStyle = cfg.grass;
+ ctx.fillRect(0,0,360,520);
+
+ ctx.fillStyle = cfg.asphalt;
+ ctx.fillRect(180 - ROAD_HALF, 0, ROAD_HALF * 2, 520);
+
+ const curbAlt = Math.sin(player.progress * 0.2) > 0 ? cfg.curb1 : cfg.curb2;
+ ctx.fillStyle = curbAlt;
+ ctx.fillRect(180 - ROAD_HALF - 7, 0, 7, 520);
+ ctx.fillRect(180 + ROAD_HALF, 0, 7, 520);
+
+ ctx.fillStyle = '#f8fafc';
+ const dashY = (player.progress * 15) % 40;
+ for(let y = -40 + dashY; y < 520; y += 40){
+  ctx.fillRect(178, y, 4, 20);
+ }
+
+ for(const r of rivals){
+  const ry = PLAYER_SCREEN_Y - (r.progress - player.progress) * METER_SCALE;
+  if(ry > -60 && ry < 580){
+   drawMotorbike(ctx, 180 + r.offset, ry, r.color, 1.0, 0, 0, 0, r.carNumber);
+  }
+ }
+
+ drawMotorbike(ctx, 180 + player.offset, player.y, '#f43f5e', 1.0, player.angle, player.wheelAngle, 0, 1);
+}
+
+function keyName(k){ return k.toLowerCase(); }
+
+document.addEventListener('keydown', e=>{
+ const k = keyName(e.key);
+ if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+ keys[k] = true;
+});
+
+document.addEventListener('keyup', e=>{ keys[keyName(e.key)] = false; });
+window.addEventListener('blur', ()=>{ keys = {}; });
+
+function bind(id, key){
+ const el = $(id);
+ el.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  keys[key] = true;
+  if(el.setPointerCapture) el.setPointerCapture(e.pointerId);
+ });
+ const rel = ()=>{ keys[key] = false; };
+ el.addEventListener('pointerup', rel);
+ el.addEventListener('pointercancel', rel);
+ el.addEventListener('lostpointercapture', rel);
+}
+
+bind('left','a');
+bind('right','d');
+bind('gas','w');
+bind('brake','s');
+
+function resetSave(){
+ if(confirm('Tüm kariyer Seviye 1 ile sıfırlansın mı?')){
+  localStorage.removeItem(SAVE);
+  for(const k of PREV_KEYS) localStorage.removeItem(k);
+  money = 1000;
+  level = 1;
+  currentCarIndex = 0;
+  currentEngineId = 0;
+  ownedEngines = [0];
+  isVIP = false;
+  saveData();
+  renderGarage();
+ }
+}
+
+loadData();
+</script>
+</body>
+</html>
