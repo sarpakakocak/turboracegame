@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TURBO YARIŞ 50 - 360 KM/H MOTOSİKLET GP</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090d16;color:#f8fafc;font-family:'Segoe UI',Roboto,Arial,sans-serif;text-align:center;user-select:none;overflow-x:hidden}
+
+/* Üst Göstergeler */
+.header-bar{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:6px;background:#0f172a;border-bottom:2px solid #1e293b}
+.stat{background:#1e293b;padding:5px 12px;border-radius:8px;font-size:13px;border:1px solid #334155;font-weight:600}
+.stat b{color:#38bdf8}
+
+/* Yarış Alanı */
+.game-container{position:relative;width:min(96vw,360px);margin:4px auto}
+canvas{display:block;width:100%;height:auto;border:3px solid #475569;border-radius:12px;touch-action:none;box-shadow:0 10px 30px rgba(0,0,0,.8)}
+
+/* Otomatik Geri Sayım */
+#countdown-box{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-size:68px;font-weight:900;color:#ffcf24;text-shadow:0 0 25px rgba(255,207,36,.9);pointer-events:none;z-index:30}
+.curve-badge{font-weight:bold;padding:5px 12px;border-radius:8px;display:inline-block;margin:4px 0;font-size:13px}
+
+/* Alt Hız ve Mesafe Paneli */
+.hud-bottom{display:flex;justify-content:space-around;align-items:center;background:#111827;border:1px solid #334155;border-radius:10px;max-width:360px;margin:4px auto;padding:6px}
+
+/* Kocaman Dokunmatik Yön Butonları */
+.controls{display:flex;justify-content:center;gap:8px;margin:8px auto;max-width:360px}
+.ctrl-btn{background:#1e293b;color:#f8fafc;border:2px solid #475569;border-radius:10px;padding:16px;font-weight:bold;font-size:16px;flex:1;touch-action:none}
+.ctrl-btn:active{background:#ffcf24;color:#111}
+
+/* Bitiş Ekranı */
+#result-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:99}
+.modal-content{background:#111827;border:2px solid #eab308;border-radius:14px;padding:20px;max-width:330px;width:92%}
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+ <div class="stat">💰 <b id="money-display">$1,000</b></div>
+ <div class="stat">🏆 Seviye <b id="level-display">1</b></div>
+ <div class="stat">🏍️ <b id="car-name-display">Ninja 360 GP</b></div>
+ <div class="stat" style="color:#22c55e">⚡ 360 KM/SA OTOMATİK</div>
+</div>
+
+<div id="curve-badge" class="curve-badge" style="background:#15803d;color:#fff">🟢 360 KM/SA TAM GAZ GİDİYOR!</div>
+
+<div class="game-container">
+ <canvas id="game" width="360" height="520"></canvas>
+ <div id="countdown-box">3</div>
+</div>
+
+<div class="hud-bottom">
+ <div>HIZ: <b id="speed-display" style="color:#facc15;font-size:18px">360</b> km/h</div>
+ <div>SIRA: <b id="rank-hud" style="color:#22c55e;font-size:16px">1 / 50</b></div>
+ <div id="dist-display" style="color:#38bdf8">Kalan: 1000 M</div>
+</div>
+
+<div class="controls">
+ <button id="left" class="ctrl-btn">⬅️ SOLA DÖN</button>
+ <button id="brake" class="ctrl-btn" style="flex:0.6;background:#7f1d1d">FREN</button>
+ <button id="gas" class="ctrl-btn" style="flex:0.6;background:#15803d">GAZ</button>
+ <button id="right" class="ctrl-btn">➡️ SAĞA DÖN</button>
+</div>
+
+<!-- Bitiş Modalı -->
+<div id="result-modal">
+ <div class="modal-content">
+  <h2 style="color:#facc15;margin:4px 0">🏁 YARIŞ TAMAMLANDI!</h2>
+  <p id="res-rank" style="font-size:18px;font-weight:bold;color:#fff;margin:6px 0">Sıralama: 1. / 50</p>
+  <p id="res-prize" style="color:#22c55e;font-size:17px;font-weight:bold;margin:2px 0">Ödül: +$10,000</p>
+  <p style="font-size:12px;color:#94a3b8">Yeni yarış 2 saniye içinde kendiliğinden başlayacak...</p>
+ </div>
+</div>
+
+<script>
+'use strict';
+
+const SAVE='turboYaris50_UltraReal_v22';
+const FINISH_DIST = 1000;
+const ROAD_HALF = 105;
+const PLAYER_SCREEN_Y = 380;
+const METER_SCALE = 1.6;
+
+let money = 1000;
+let level = 1;
+
+// MOTOSİKLET 360 KM/H İLE HİÇ DURMADAN AKAR!
+let speed = 360; 
+let distance = 0;
+let running = false;
+let last = 0;
+let raf = 0;
+let keys = {};
+let rivals = [];
+let particles = [];
+let autoRestartTimer = null;
+
+const player = { offset:0, y:PLAYER_SCREEN_Y, progress:0, angle:0, wheelAngle:0 };
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const $ = id => document.getElementById(id);
+
+/* --- ESKİ GRAND PRIX KIVRILAN VİRAJLARI --- */
+function getTrackCurve(d){
+ if(d >= 150 && d < 320) return 0.75 * Math.sin(((d - 150) / 170) * Math.PI); // Sağa
+ if(d >= 440 && d < 660) return -0.85 * Math.sin(((d - 440) / 220) * Math.PI); // Sola
+ if(d >= 750 && d < 900) return 0.80 * Math.sin(((d - 750) / 150) * Math.PI); // S-Viraj
+ return 0;
+}
+
+const TRACK_STEP = 5;
+const trackPoints = [];
+let cumX = 0;
+for(let d=0; d<=1400; d+=TRACK_STEP){
+ cumX += getTrackCurve(d) * TRACK_STEP * 2.2;
+ trackPoints.push({ d, x: cumX });
+}
+
+function getTrackData(d){
+ if(d <= 0) return { x:0, k:0 };
+ const idx = Math.min(trackPoints.length-2, Math.max(0, Math.floor(d / TRACK_STEP)));
+ const t = (d - trackPoints[idx].d) / TRACK_STEP;
+ const x = trackPoints[idx].x * (1 - t) + trackPoints[idx+1].x * t;
+ return { x, k: getTrackCurve(d) };
+}
+
+function loadData(){
+ try{
+  const d = JSON.parse(localStorage.getItem(SAVE) || 'null');
+  if(d){
+   money = d.money ?? 1000;
+   level = d.level ?? 1;
+  }
+ }catch(e){}
+ $('money-display').textContent = `$${money.toLocaleString()}`;
+ $('level-display').textContent = level.toLocaleString();
+}
+
+function saveData(){
+ try{
+  localStorage.setItem(SAVE, JSON.stringify({ money, level }));
+ }catch(e){}
+}
+
+/* ================= GERÇEKÇİ MOTOSİKLET VE DİZ SÜRTEN SÜRÜCÜ ================= */
+function drawMotorbike(targetCtx, x, y, color, scale, bodyAngle, wheelAngle, bikeNum){
+ targetCtx.save();
+ const vibe = (Math.random() - 0.5) * 1.5;
+ targetCtx.translate(x + vibe, y + 26);
+ targetCtx.rotate(bodyAngle); // VİRAJIN İÇİNE DOĞRU YATAR!
+ targetCtx.scale(scale, scale);
+
+ // 1. Asfalt Gölgesi
+ targetCtx.fillStyle = 'rgba(0,0,0,0.5)';
+ targetCtx.beginPath();
+ targetCtx.ellipse(bodyAngle * 12, 4, 10, 34, bodyAngle * 0.5, 0, Math.PI * 2);
+ targetCtx.fill();
+
+ // 2. Kalın Arka Yarış Lastiği
+ targetCtx.fillStyle = '#090d16';
+ targetCtx.beginPath();
+ targetCtx.roundRect(-5.5, 12, 11, 24, 3.5);
+ targetCtx.fill();
+
+ // 3. Egzoz Borusu
+ targetCtx.fillStyle = '#64748b';
+ targetCtx.fillRect(6.5, 10, 4, 18);
+ targetCtx.fillStyle = '#38bdf8';
+ targetCtx.fillRect(6.5, 24, 4, 3);
+
+ // 4. Ön Lastik ve Dönen Çatal
+ targetCtx.save();
+ targetCtx.translate(0, -22);
+ targetCtx.rotate(wheelAngle);
+ targetCtx.fillStyle = '#090d16';
+ targetCtx.beginPath();
+ targetCtx.roundRect(-4, -13, 8, 22, 3);
+ targetCtx.fill();
+ targetCtx.fillStyle = '#facc15';
+ targetCtx.fillRect(-6, -6, 2, 16);
+ targetCtx.fillRect(4, -6, 2, 16);
+ targetCtx.restore();
+
+ // 5. Motosiklet Grenajı (Gövde)
+ targetCtx.fillStyle = color;
+ targetCtx.beginPath();
+ targetCtx.moveTo(0, -28);
+ targetCtx.lineTo(11, -14);
+ targetCtx.lineTo(8, 15);
+ targetCtx.lineTo(0, 26);
+ targetCtx.lineTo(-8, 15);
+ targetCtx.lineTo(-11, -14);
+ targetCtx.closePath();
+ targetCtx.fill();
+
+ // Rüzgarlık Vizörü
+ targetCtx.fillStyle = 'rgba(56,189,248,0.85)';
+ targetCtx.beginPath();
+ targetCtx.moveTo(0, -27);
+ targetCtx.lineTo(5, -16);
+ targetCtx.lineTo(-5, -16);
+ targetCtx.closePath();
+ targetCtx.fill();
+
+ // 6. Sürücü ve Virajda Açılan Diz Slider'ı (MotoGP Stili!)
+ const kneeOut = bodyAngle * 16;
+ targetCtx.save();
+ targetCtx.translate(kneeOut * 0.4, 0);
+
+ targetCtx.fillStyle = '#facc15';
+ targetCtx.beginPath();
+ if(bodyAngle < -0.05) targetCtx.ellipse(-15, 6, 4, 7, -0.6, 0, Math.PI*2);
+ else if(bodyAngle > 0.05) targetCtx.ellipse(15, 6, 4, 7, 0.6, 0, Math.PI*2);
+ targetCtx.fill();
+
+ targetCtx.fillStyle = '#0f172a';
+ targetCtx.beginPath();
+ targetCtx.ellipse(0, 0, 8.5, 11, 0, 0, Math.PI*2);
+ targetCtx.fill();
+ targetCtx.fillStyle = '#f8fafc';
+ targetCtx.beginPath();
+ targetCtx.arc(0, -6, 6, 0, Math.PI*2);
+ targetCtx.fill();
+ targetCtx.fillStyle = '#0284c7';
+ targetCtx.beginPath();
+ targetCtx.arc(0, -7.5, 4.8, Math.PI, 0);
+ targetCtx.fill();
+ targetCtx.restore();
+
+ // Yarış Numarası
+ if(bikeNum){
+  targetCtx.fillStyle = '#fff';
+  targetCtx.beginPath();
+  targetCtx.arc(0, 19, 6, 0, Math.PI*2);
+  targetCtx.fill();
+  targetCtx.fillStyle = '#000';
+  targetCtx.font = 'bold 7.5px Arial';
+  targetCtx.textAlign = 'center';
+  targetCtx.textBaseline = 'middle';
+  targetCtx.fillText(bikeNum, 0, 19.5);
+ }
+
+ targetCtx.restore();
+}
+
+/* ================= YARIŞI ANINDA VE OTOMATİK BAŞLATMA ================= */
+function autoStartGame(){
+ if(autoRestartTimer) clearTimeout(autoRestartTimer);
+ $('result-modal').style.display = 'none';
+
+ speed = 360; // 360 KM/H TAM GAZ ÇALIŞIR VAZİYETTE!
+ distance = 0;
+ running = false;
+ keys = {};
+ particles = [];
+
+ player.offset = 0;
+ player.y = PLAYER_SCREEN_Y;
+ player.progress = 0;
+ player.angle = 0;
+ player.wheelAngle = 0;
+
+ // 49 RAKİP MOTOSİKLET PİSTE DİZİLİR (TOPLAM 50 MOTOSİKLET)
+ rivals = [];
+ for(let i=0; i<49; i++){
+  rivals.push({
+   carNumber: i + 2,
+   offset: (i % 2 === 0 ? -40 : 40) + (Math.random()*16 - 8),
+   progress: -(i + 1) * 7.5,
+   speed: 310 + Math.random() * 25,
+   color: ['#3b82f6','#eab308','#10b981','#a855f7','#f97316'][(i+1)%5],
+   angle: 0
+  });
+ }
+
+ draw();
+
+ // Geri sayım otomatik başlar ve hemen yarışa geçer
+ const box = $('countdown-box');
+ box.style.display = 'block';
+ let count = 3;
+ box.textContent = count;
+
+ const timer = setInterval(()=>{
+  count--;
+  if(count > 0){
+   box.textContent = count;
+  }else if(count === 0){
+   box.textContent = 'GAZLA!';
+   box.style.color = '#22c55e';
+  }else{
+   clearInterval(timer);
+   box.style.display = 'none';
+   box.style.color = '#ffcf24';
+   running = true;
+   last = performance.now();
+   raf = requestAnimationFrame(loop);
+  }
+ }, 600);
+}
+
+function finishRace(rank){
+ running = false;
+ const prize = (rank === 1) ? 10000 : (rank === 2) ? 5000 : 2500;
+ money += prize;
+ level++;
+ saveData();
+ $('money-display').textContent = `$${money.toLocaleString()}`;
+ $('level-display').textContent = level.toLocaleString();
+ $('res-rank').textContent = `Sıralama: ${rank}. / 50`;
+ $('res-prize').textContent = `Ödül: +$${prize.toLocaleString()}`;
+ $('result-modal').style.display = 'flex';
+
+ // 2 saniye sonra kendiliğinden sonraki yarışa başlar
+ autoRestartTimer = setTimeout(()=>{
+  autoStartGame();
+ }, 2000);
+}
+
+/* ================= OYUN DÖNGÜSÜ (360 KM/SA ASLA DURMAZ) ================= */
+function loop(now){
+ if(!running) return;
+ const dt = Math.min(Math.max((now - last) / 16.667, 0), 1.8);
+ last = now;
+
+ const curK = getTrackCurve(player.progress);
+
+ // Viraj Uyarısı
+ const badge = $('curve-badge');
+ if(Math.abs(curK) < 0.08){
+  badge.style.background = '#15803d';
+  badge.textContent = '🟢 360 KM/SA TAM GAZ GİDİYOR!';
+ }else if(curK > 0){
+  badge.style.background = '#ea580c';
+  badge.textContent = '⚠️ SAĞA GRAND PRIX VİRAJI! (Sağa Yat)';
+ }else{
+  badge.style.background = '#ea580c';
+  badge.textContent = '⚠️ SOLA GRAND PRIX VİRAJI! (Sola Yat)';
+ }
+
+ // MOTOSİKLET KENDİLİĞİNDEN 360 KM/SA HIZLA GİDER!
+ if(keys.s || keys.arrowdown){
+  speed = Math.max(180, speed - 2.5 * dt); // Fren yapınca bile durmaz!
+ }else if(keys.w || keys.arrowup || keys[' ']){
+  speed = Math.min(390, speed + 1.5 * dt); // Ekstra gaz basarsa 390'a çıkar!
+ }else{
+  speed = 360; // Normalde tam 360 km/h ile uçar!
+ }
+
+ // Direksiyon ve Viraja Yatma
+ const turnPwr = 2.4 * dt;
+ let targetWheel = 0, targetBody = 0;
+ if(keys.a || keys.arrowleft){
+  player.offset -= turnPwr;
+  targetWheel = -0.45; targetBody = -0.26;
+ }
+ if(keys.d || keys.arrowright){
+  player.offset += turnPwr;
+  targetWheel = 0.45; targetBody = 0.26;
+ }
+
+ // Viraj merkezkaç savrulması
+ if(Math.abs(curK) > 0.05){
+  player.offset -= curK * 1.5 * dt;
+  targetBody -= curK * 0.18;
+ }
+
+ player.wheelAngle += (targetWheel - player.wheelAngle) * 0.25 * dt;
+ player.angle += (targetBody - player.angle) * 0.20 * dt;
+ player.offset = Math.max(-ROAD_HALF + 10, Math.min(ROAD_HALF - 10, player.offset));
+
+ // İlerleme (Motosiklet hiç durmadan akar)
+ const advance = (speed * dt) / 320;
+ player.progress += advance;
+ distance = player.progress;
+
+ // Egzoz Dumanı Parçacıkları
+ if(Math.random() < 0.75){
+  particles.push({
+   x: 180 + player.offset + 8 + (Math.random() - 0.5) * 4,
+   y: player.y + 42,
+   r: 2.5 + Math.random() * 3,
+   alpha: 0.8,
+   color: Math.random() > 0.5 ? '#38bdf8' : '#f97316'
+  });
+ }
+ for(let i = particles.length - 1; i >= 0; i--){
+  const p = particles[i];
+  p.y += 3.5 * dt;
+  p.alpha -= 0.045 * dt;
+  if(p.alpha <= 0) particles.splice(i, 1);
+ }
+
+ // 49 Rakip Hareketi
+ for(const r of rivals){
+  r.progress += (r.speed * dt) / 320;
+  const rK = getTrackCurve(r.progress);
+  r.angle = -rK * 0.22;
+ }
+
+ const currentRank = 1 + rivals.filter(r => r.progress > player.progress).length;
+ $('rank-hud').textContent = `${currentRank} / 50`;
+ $('speed-display').textContent = Math.round(speed);
+ $('dist-display').textContent = `Kalan: ${Math.max(0, Math.ceil(FINISH_DIST - distance))} M`;
+
+ if(distance >= FINISH_DIST){
+  finishRace(currentRank);
+  return;
+ }
+
+ draw();
+ if(running) raf = requestAnimationFrame(loop);
+}
+
+/* ================= GRAND PRIX ÇİZİMİ ================= */
+function draw(){
+ ctx.clearRect(0,0,360,520);
+ const playerTrackX = getTrackData(player.progress).x;
+
+ // 1. Kıvrılan Yol ve Bordürler
+ const sliceH = 14;
+ for(let y=520; y>=0; y-=sliceH){
+  const distAtY = player.progress + (PLAYER_SCREEN_Y - y) * 0.45;
+  const cx = 180 + (getTrackData(distAtY).x - playerTrackX);
+
+  // Yeşil Çimen Zemin
+  ctx.fillStyle = Math.sin(distAtY * 0.12) > 0 ? '#15803d' : '#166534';
+  ctx.fillRect(0, y - sliceH, 360, sliceH);
+
+  // Kırmızı-Beyaz Bordürler
+  const curbAlt = Math.sin(distAtY * 0.3) > 0 ? '#ef4444' : '#ffffff';
+  ctx.fillStyle = curbAlt;
+  ctx.fillRect(cx - ROAD_HALF - 8, y - sliceH, ROAD_HALF * 2 + 16, sliceH);
+
+  // Asfalt Yol
+  ctx.fillStyle = '#2c3340';
+  ctx.fillRect(cx - ROAD_HALF, y - sliceH, ROAD_HALF * 2, sliceH);
+
+  // Şerit Çizgileri
+  if(Math.sin(distAtY * 0.2) > 0){
+   ctx.fillStyle = '#94a3b8';
+   for(const laneX of [-50, 0, 50]){
+    ctx.fillRect(cx + laneX - 1.5, y - sliceH, 3, sliceH);
+   }
+  }
+
+  // Finiş Çizgisi
+  if(Math.abs(distAtY - FINISH_DIST) < 3.0){
+   for(let fx = cx - ROAD_HALF; fx < cx + ROAD_HALF; fx += 15){
+    ctx.fillStyle = (Math.floor(fx/15) % 2 === 0) ? '#ffffff' : '#000000';
+    ctx.fillRect(fx, y - sliceH, 15, sliceH);
+   }
+  }
+ }
+
+ // 2. Egzoz Dumanları
+ for(const p of particles){
+  ctx.save();
+  ctx.fillStyle = p.color;
+  ctx.globalAlpha = p.alpha;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+ }
+
+ // 3. 49 Rakip Motosiklet
+ for(const r of rivals){
+  const rTrackX = getTrackData(r.progress).x;
+  const cx = 180 + (rTrackX - playerTrackX);
+  const ry = PLAYER_SCREEN_Y - (r.progress - player.progress) * METER_SCALE;
+
+  if(ry > -65 && ry < 580){
+   drawMotorbike(ctx, cx + r.offset, ry, r.color, 1.0, r.angle, 0, r.carNumber);
+  }
+ }
+
+ // 4. Oyuncu Motosikleti
+ const playerScreenX = 180 + player.offset;
+ drawMotorbike(ctx, playerScreenX, player.y, '#f43f5e', 1.0, player.angle, player.wheelAngle, 1);
+}
+
+/* ================= KONTROLLER ================= */
+function keyName(k){ return k.toLowerCase(); }
+
+document.addEventListener('keydown', e=>{
+ const k = keyName(e.key);
+ if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+ keys[k] = true;
+});
+
+document.addEventListener('keyup', e=>{ keys[keyName(e.key)] = false; });
+window.addEventListener('blur', ()=>{ keys = {}; });
+
+function bind(id, key){
+ const el = $(id);
+ el.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  keys[key] = true;
+  if(el.setPointerCapture) el.setPointerCapture(e.pointerId);
+ });
+ const rel = ()=>{ keys[key] = false; };
+ el.addEventListener('pointerup', rel);
+ el.addEventListener('pointercancel', rel);
+ el.addEventListener('lostpointercapture', rel);
+}
+
+bind('left','a');
+bind('right','d');
+bind('gas','w');
+bind('brake','s');
+
+// SAYFA AÇILIR AÇILMAZ YARIŞ KENDİLİĞİNDEN OTOMATİK BAŞLAR!
+loadData();
+window.addEventListener('load', ()=>{ autoStartGame(); });
+if(document.readyState === 'complete' || document.readyState === 'interactive'){
+ autoStartGame();
+}
+</script>
+</body>
+</html>
